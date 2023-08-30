@@ -1,0 +1,15 @@
+__pycache__/*
+__pycache__
+.idea
+.idea/*
+*.pyc
+build
+build/*
+dist
+dist/*
+*.egg-info
+luca_*
+keys/*
+nqdb.egg-info
+HOWTO.md
+

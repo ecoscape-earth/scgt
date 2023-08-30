@@ -1,0 +1,30 @@
+[project]
+name = "json_np"
+version = "0.0.6"
+authors = [{name="Luca de Alfaro", email="luca@dealfaro.com"}, {name="Massimo Di Pierro", email="massimo.dipierro@gmail.com" },]
+description = "Json serialization extended to dates, numpy arrays, and more"
+readme = "README.md"
+requires-python = ">=3.7"
+license = {file="LICENSE"}
+classifiers = [
+        "Development Status :: 3 - Alpha",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: Implementation :: CPython",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+[tool.setuptools]
+packages = ["json_np"]
+
+[project.urls]
+"Homepage" = "https://github.com/lucadealfaro/json_np"
+"Bug Tracker" = "https://github.com/lucadealfaro/json_np/issues"
+
+
