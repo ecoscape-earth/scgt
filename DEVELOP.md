@@ -11,3 +11,7 @@ To upload:
 To build the documentation:
 
     pydoc-markdown -I scgt -m scgt > Documentation.md
+
+To install locally: 
+
+    python3 -m pip install . 

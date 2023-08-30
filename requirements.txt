@@ -1,4 +1,4 @@
-GDAL>=3.6.1
+GDAL==3.6.1
 matplotlib>=3.5.3
 numpy>=1.20.3
 rasterio>=1.2.10

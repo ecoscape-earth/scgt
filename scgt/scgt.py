@@ -341,7 +341,7 @@ class GeoTiff(object):
     def getAttributeTable(self):
         """
         Opens geotiff with GDAL, creates attribute table containing tiff's unique values and counts.
-        To be called in __exit__ as to update the RAT with any new values
+        To be called in __exit__ as to update the RAT with any new values.
         """
 
         # Get unique values and counts in the band
