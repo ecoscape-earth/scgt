@@ -28,3 +28,5 @@ with gt_in.clone_shape("outputfile.tif") as gt_out:
         gt_out.set_tile(new_tile)
 ```
 
+For more details, see [the documentation](Documentation.md).
+

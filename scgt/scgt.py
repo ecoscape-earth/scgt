@@ -495,6 +495,16 @@ class GeoTiff(object):
         :param x: x-coord of the pixel.
         :param y: y-coord of the pixel.
         :return: The value at the pixel.
+        """
+        window = rasterio.windows.Window(x, y, 1, 1)
+        return (self.dataset.read(window=window))[0][0][0]
+
+    def get_slow_pixel_value(self, x, y):
+        """
+        Gets the value of the GeoTiff at a given pixel.
+        :param x: x-coord of the pixel.
+        :param y: y-coord of the pixel.
+        :return: The value at the pixel.
         FIXME: this is inefficient.  Redo using Window.
         """
         # window = rasterio.windows.Window(x, y, 1, 1)
