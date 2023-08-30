@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scgt"
-version = "0.0.2"
+version = "0.0.3"
 authors = [
         {name="Jasmine Tai", email="jctai@ucsc.edu"},
         {name="Natalie Valett", email="nvalett@ucsc.edu"},
@@ -16,7 +16,7 @@ license = {file="LICENSE.md"}
 classifiers = [
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
-        "License :: OSI Approved :: MIT License",
+        "License :: OSI Approved :: BSD License",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: Implementation :: CPython",
