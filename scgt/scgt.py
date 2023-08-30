@@ -195,7 +195,7 @@ class GeoTiff(object):
         if isinstance(tile.m, np.ndarray):
             T = tile.m.astype(self.dataset.dtypes[0])
         else:
-            T = tile.m.numpy().astype(self.dataset.dtypes[0])
+            T = tile.m.detach().numpy().astype(self.dataset.dtypes[0])
         # Adjust T if border exists
         if tile.b > 0:
             b = tile.b
