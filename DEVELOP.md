@@ -7,3 +7,7 @@ To build locally:
 To upload: 
 
     python3 -m twine upload dist/*
+
+To build the documentation:
+
+    pydoc-markdown -I scgt -m scgt > Documentation.md
