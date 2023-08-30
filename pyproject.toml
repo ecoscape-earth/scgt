@@ -1,9 +1,13 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "scgt"
 version = "0.0.1"
 authors = [
         {name="Jasmin Tai", email="jctai@ucsc.edu"},
-        {name="Natalie Valett", email="nvalett@ucsc.edu",}
+        {name="Natalie Valett", email="nvalett@ucsc.edu"},
         {name="Luca de Alfaro", email="luca@dealfaro.com"}]
 description = "UC Santa Cruz Geographical Toolkit"
 readme = "README.md"
