@@ -5,15 +5,13 @@
 This library provides convenience functions to read and write GeoTiff files, 
 including iterating over their tiles. 
 
-**Main Authors:**
-
-* Jasmine Tai (cjtai@ucsc.edu)
-* Natalie Valett (nvalett@ucsc.edu)
-
-**Other Conributors:**
+**Authors:**
 
 * Luca de Alfaro (luca@ucsc.edu)
-
+* Jasmine Tai (cjtai@ucsc.edu)
+* Natalie Valett (nvalett@ucsc.edu)
+* Coen Adler (ctadler@ucsc.edu)
+* Artie Nazarov (anazarov@ucsc.edu)
 
 ## Basic Usage
 
