@@ -396,7 +396,7 @@ class GeoTiff(object):
         :param output_path: path where to write result.
         :param bounds: bounding box (xmin, ymin, xmax, ymax) for the output (in the same coordinate system)
         :param padding: amount of padding in meters to add around the shape bounds.
-        :return: Nothing.
+        :return: the GeoTiff object for the new file.
         """
         # add padding to the bounds
         bounds = (bounds[0] - padding, bounds[1] - padding, bounds[2] + padding, bounds[3] + padding)
@@ -450,6 +450,7 @@ class GeoTiff(object):
             'transform': transform,
             'width': width,
             'height': height,
+            'nodata': None,
             'compress': 'LZW',
             'bigtiff': 'YES'
         })
