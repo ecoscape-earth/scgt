@@ -13,6 +13,7 @@ import scipy.ndimage as nd
 class GeoTiff(object):
     """A GeoTiff object provides an interface to reading/writing geotiffs in
     a tiled fashion, and to many other additional operations."""
+    
     def __init__(self, file=None):
         """
         Initializes a GeoTiff object.
@@ -227,6 +228,23 @@ class GeoTiff(object):
         if x < 0 or x >= w or y < 0 or y >= h:
             return None
         return x, y
+    
+    def get_coord_from_pixel(self, xy, offset='center'):
+        """
+        Gets CRS coordinate that corresponds to the (x, y) pixel on the geotiff
+        :param xy: (x,y) pixel of geotiff
+        :param offset: defines whether to return one of the corner coordinates or the center
+            coordinates of the pixel; must be one of 'center', 'ul', 'ur', 'll', 'lr'
+        :returns: the corresponding CRS coordinate, or None if out of bounds
+        """
+        if offset not in ['ul', 'ur', 'll', 'lr', 'center']:
+            raise ValueError(f"Invalid offset '{offset}': expected 'center', 'ul', 'ur', 'll', or 'lr'")
+        x, y = xy
+        # check that coord is within bounds of tif
+        w, h = self.size
+        if x < 0 or x >= w or y < 0 or y >= h:
+            return None
+        return self.dataset.xy(y, x, offset)
 
     def get_tile_from_coord(self, coord, tile_scale=4):
         """
