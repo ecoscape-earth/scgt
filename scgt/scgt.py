@@ -3,6 +3,7 @@ import rasterio.plot
 import shutil
 from rasterio.windows import Window, from_bounds
 from rasterio.warp import calculate_default_transform, reproject, Resampling
+from rasterio.io import MemoryFile
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
@@ -14,7 +15,7 @@ class GeoTiff(object):
     """A GeoTiff object provides an interface to reading/writing geotiffs in
     a tiled fashion, and to many other additional operations."""
     
-    def __init__(self, file=None):
+    def __init__(self, file=None, memory_file=None):
         """
         Initializes a GeoTiff object.
         :param file: A file object for the geotiff.
@@ -29,6 +30,7 @@ class GeoTiff(object):
         block_shapes : array with the shape of blocks for all bands
                         i.e [(1, (3, 791)), (2, (3, 791))]
         profile : Geotiff profile - used for writing metadata to new file
+        memory_file : the associated memory file object if geotiff is stored in memory
         """
         if file:
             self.dataset = file
@@ -45,6 +47,7 @@ class GeoTiff(object):
             self.data_types = self.dataset.dtypes
             self.profile = self.dataset.profile
             self.crs = self.dataset.crs
+            self.memory_file = memory_file
 
 
     def __enter__(self):
@@ -55,8 +58,11 @@ class GeoTiff(object):
     def __exit__(self, type, value, traceback):
         """Context manager exit."""
         # closes the dataset at the conclusion of a with statement
-        self.getAttributeTable()
-        self.dataset.close()
+        if self.memory_file is not None:
+            self.close_memory_file()
+        else:
+            self.getAttributeTable()
+            self.dataset.close()
 
     @classmethod
     def from_file(cls, filename):
@@ -86,6 +92,7 @@ class GeoTiff(object):
         # create file with write mode, then open with rw to have full read/write access
         f = rasterio.open(filename, 'w', **profile)
         f.close()
+
         # sets no_data (transparent value)
         if no_data_value is not None:
             with rasterio.open(filename, "r+") as dataset:
@@ -96,9 +103,32 @@ class GeoTiff(object):
         open_file = rasterio.open(filename, 'r+', **profile)
         if not open_file:
             sys.exit("GeoTiff Error: copy_to_new_file() being called with invalid Geotiff data or filepath")
+        
         # return GeoTiff obj with open file
         return cls(open_file)
 
+    @classmethod
+    def create_memory_file(cls, profile, no_data_value=None):
+        """ creates a temporary file in memory in which to store a GeoTiff obj.
+        :param profile: profile for writing the geotiff.
+        :param no_data_value (dtype of raster): value to be used as transparent 'nodata' value, otherwise fills 0's
+            (note that if geotiff is of unsigned type, like uint8, the no_data value must be  a positive int in the data range, which could result in data obstruction. If datatype is signed, we suggest using a negative value)
+        :return: the GeoTiff object for the new file.
+        """
+        # create file in memory
+        f = MemoryFile()
+
+        # open file for read/write
+        dataset = rasterio.open(f, mode="w+", **profile)
+
+        # set no_data (transparent value) if given
+        if no_data_value is not None:
+            dataset.nodata = no_data_value
+            nodata_mask = np.ones((dataset.width, dataset.height)) * no_data_value
+            dataset.write(nodata_mask.astype(profile['dtype']), 1)
+        
+        # return GeoTiff obj with open file
+        return cls(dataset, memory_file=f)
 
     def clone_shape(self, filename, no_data_value=None, dtype=None):
         """Creates a new geotiff with the indicated filename, cloning the shape of the current one.
@@ -123,6 +153,7 @@ class GeoTiff(object):
         # copies src tif file to destination
         shutil.copy(src=self.filepath, dst=filename)
         tiff = GeoTiff.copy_to_new_file(filename, profile=profile, no_data_value=no_data_value)
+        
         return tiff
 
     def scale_tiff(self, reference_tif=None, scale_x=1, scale_y=1):
@@ -408,12 +439,13 @@ class GeoTiff(object):
                                                   cmap="inferno"))
         plt.show()
 
-    def crop_to_new_file(self, output_path, bounds, padding=0):
+    def crop_to_new_file(self, bounds, padding=0, filename=None, in_memory=False):
         """
         Create a new geotiff by cropping the current one and writing to a new file.
-        :param output_path: path where to write result.
+        :param filename: path where to write result.
         :param bounds: bounding box (xmin, ymin, xmax, ymax) for the output (in the same coordinate system)
         :param padding: amount of padding in meters to add around the shape bounds.
+        :param in_memory: whether to create the file in memory only. filename is ignored if True.
         :return: the GeoTiff object for the new file.
         """
         # add padding to the bounds
@@ -435,8 +467,14 @@ class GeoTiff(object):
             'bigtiff': 'YES'
         })
 
+        # create new file
+        if in_memory:
+            output = GeoTiff.create_memory_file(profile)
+        else:
+            assert filename is not None, "filename must be provided if not creating file in memory"
+            output = GeoTiff.copy_to_new_file(filename, profile)
+
         # copy data within the cropping window over to new file
-        output = GeoTiff.copy_to_new_file(output_path, profile)
         reader = output.get_reader(b=0, w=10000, h=10000)
         for tile in reader:
             tile.fit_to_bounds(width=output.width, height=output.height)
@@ -547,6 +585,18 @@ class GeoTiff(object):
         window = rasterio.windows.Window(x - (size/2), y - (size/2), size, size)
         arr = np.squeeze(self.dataset.read(window=window))
         return np.average(arr, weights=gaussian_kernel(arr.shape[0]))
+
+    def close_memory_file(self):
+        """
+        Closes the memory file if the GeoTiff object is created in memory only.
+        This is called automatically if the object is used in a with statement.
+        Otherwise, it should be called when the GeoTiff object is not needed anymore
+        so that the memory file is deleted.
+        """
+        if self.memory_file is not None and not self.memory_file.closed:
+            self.dataset.close()
+            self.memory_file._env.close()
+            self.memory_file.close()
 
 class Reader(object):
     """
