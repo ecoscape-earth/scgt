@@ -597,6 +597,8 @@ class GeoTiff(object):
             self.dataset.close()
             self.memory_file._env.close()
             self.memory_file.close()
+        elif self.memory_file is None:
+            print(f'The current GeoTiff object ("{self.filepath}") is not stored in memory.')
 
 class Reader(object):
     """
