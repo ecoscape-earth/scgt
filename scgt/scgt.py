@@ -19,10 +19,11 @@ class GeoTiff(object):
         """
         Initializes a GeoTiff object.
         :param file: A file object for the geotiff.
+        :param memory_file: The corresponding opened MemoryFile object if the geotiff is stored in memory.
 
         Properties:
         dataset : open geotiff file
-        size : touple -> raster width, height
+        size : tuple -> raster width, height
         bands : int -> number of bands in geotiff
         transform : the dataset's geospatial transform - an affine transformation matrix that maps pixel
                     locations in (row, col) coordinates to (x, y) spatial positions
@@ -442,9 +443,9 @@ class GeoTiff(object):
     def crop_to_new_file(self, bounds, padding=0, filename=None, in_memory=False):
         """
         Create a new geotiff by cropping the current one and writing to a new file.
-        :param filename: path where to write result.
         :param bounds: bounding box (xmin, ymin, xmax, ymax) for the output (in the same coordinate system)
         :param padding: amount of padding in meters to add around the shape bounds.
+        :param filename: path where to write result.
         :param in_memory: whether to create the file in memory only. filename is ignored if True.
         :return: the GeoTiff object for the new file.
         """

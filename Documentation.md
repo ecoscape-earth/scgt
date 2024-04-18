@@ -26,16 +26,21 @@ Initializes a GeoTiff object.
 **Arguments**:
 
 - `file`: A file object for the geotiff.
-Properties:
-dataset : open geotiff file
-size : touple -> raster width, height
-bands : int -> number of bands in geotiff
-transform : the dataset's geospatial transform - an affine transformation matrix that maps pixel
+
+- `memory_file`: The corresponding opened `MemoryFile` object if the geotiff is stored in memory.
+            In most cases, this is simply left as None for all geotiffs that are stored on disk.
+
+**Properties**:
+- `dataset`: open geotiff file
+- `size`: tuple -> raster width, height
+- `bands`: int -> number of bands in geotiff
+- `transform`: the dataset's geospatial transform - an affine transformation matrix that maps pixel
             locations in (row, col) coordinates to (x, y) spatial positions
-corners : array of lat/long of corners, in order top left, top right, bottom right, bottom left
-block_shapes : array with the shape of blocks for all bands
+- `corners`: array of lat/long of corners, in order top left, top right, bottom right, bottom left
+- `block_shapes`: array with the shape of blocks for all bands
                 i.e [(1, (3, 791)), (2, (3, 791))]
-profile : Geotiff profile - used for writing metadata to new file
+- `profile`: Geotiff profile - used for writing metadata to new file
+- `memory_file`: the associated memory file object if geotiff is stored in memory
 
 <a id="scgt.GeoTiff.__enter__"></a>
 
@@ -85,15 +90,39 @@ the GeoTiff object.
 def copy_to_new_file(cls, filename, profile, no_data_value=None)
 ```
 
-creates a new file to store empty GeoTiff obj with specified params.
+Creates a new file to store empty GeoTiff obj with specified params.
 
-:param filename: file name to which to copy the file.
-:param profile: profile for writing the geotiff.
-:param no_data_value (dtype of raster): value to be used as transparent 'nodata' value, otherwise fills 0's
+**Arguments**:
+- `filename`: file name to which to copy the file.
+- `profile`: profile for writing the geotiff.
+- `no_data_value` (dtype of raster): value to be used as transparent 'nodata' value, otherwise fills 0's
     (note that if geotiff is of unsigned type, like uint8, the no_data value must be  a positive int in the data
     range, which could result in data obstruction. If datatype is signed, we suggest using a negative value)
-:return: the GeoTiff object for the new file.
 
+**Returns**:
+
+the GeoTiff object for the new file.
+
+<a id="scgt.GeoTiff.create_memory_file"></a>
+
+#### create\_memory\_file
+
+```python
+@classmethod
+def create_memory_file(cls, profile, no_data_value=None)
+```
+
+Creates a temporary file in memory in which to store a GeoTiff obj.
+
+**Arguments**:
+- `profile`: profile for writing the geotiff.
+- `no_data_value` (dtype of raster): value to be used as transparent 'nodata' value, otherwise fills 0's
+    (note that if geotiff is of unsigned type, like uint8, the no_data value must be  a positive int in the data
+    range, which could result in data obstruction. If datatype is signed, we suggest using a negative value)
+
+**Returns**:
+
+the GeoTiff object for the new file.
 
 <a id="scgt.GeoTiff.clone_shape"></a>
 
@@ -105,12 +134,16 @@ def clone_shape(filename, no_data_value=None, dtype=None)
 
 Creates a new geotiff with the indicated filename, cloning the shape of the current one.
 
-:param filename: filename where to create the new clone.
-:param no_data_value (dtype of raster): value to be used as transparent 'nodata' value, otherwise fills 0's
+**Arguments**:
+- `filename`: filename where to create the new clone.
+- `no_data_value` (dtype of raster): value to be used as transparent 'nodata' value, otherwise fills 0's
     (note that if geotiff is of unsigned type, like uint8, the no_data value must be  a positive int in the data
     range, which could result in data obstruction. If datatype is signed, we suggest using a negative value)
-:param dtype (str): datatype of tiff (ref: https://github.com/rasterio/rasterio/blob/master/rasterio/dtypes.py#L21)
-:return: the GeoTiff object for the new file.
+- `dtype` (str): datatype of tiff (ref: https://github.com/rasterio/rasterio/blob/master/rasterio/dtypes.py#L21)
+
+**Returns**:
+
+the GeoTiff object for the new file.
 
 
 <a id="scgt.GeoTiff.scale_tiff"></a>
@@ -369,20 +402,21 @@ Plots tile's numpy array representation at given band.
 #### crop\_to\_new\_file
 
 ```python
-def crop_to_new_file(output_path, bounds, padding=0)
+def crop_to_new_file(bounds, padding=0, filename=None, in_memory=False)
 ```
 
 Create a new geotiff by cropping the current one and writing to a new file.
 
 **Arguments**:
 
-- `output_path`: path where to write result.
 - `bounds`: bounding box (xmin, ymin, xmax, ymax) for the output (in the same coordinate system)
 - `padding`: amount of padding in meters to add around the shape bounds.
+- `filename`: path where to write result.
+- `in_memory`: whether to create the file in memory only. `filename` is ignored if True.
 
 **Returns**:
 
-Nothing.
+the GeoTiff object for the new file.
 
 <a id="scgt.GeoTiff.reproject_from_crs"></a>
 
@@ -479,6 +513,20 @@ Gets the average around a pixel.
 **Returns**:
 
 average value of geotiff around point.
+
+<a id="scgt.GeoTiff.close_memory_file"></a>
+
+#### close\_memory\_file
+
+```python
+def close_memory_file()
+```
+
+Closes the memory file if the GeoTiff object is created in memory only.
+This is called automatically if the object is used in a with statement.
+Otherwise, it should be called when the GeoTiff object is not needed anymore
+so that the memory file is deleted.
+
 
 <a id="scgt.Reader"></a>
 
