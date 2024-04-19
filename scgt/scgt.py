@@ -101,7 +101,7 @@ class GeoTiff(object):
                 nodata_mask = np.ones((dataset.width, dataset.height)) * no_data_value
                 dataset.write(nodata_mask.astype(profile['dtype']), 1)
 
-        open_file = rasterio.open(filename, 'r+', **profile)
+        open_file = rasterio.open(filename, 'r+')
         if not open_file:
             sys.exit("GeoTiff Error: copy_to_new_file() being called with invalid Geotiff data or filepath")
         
