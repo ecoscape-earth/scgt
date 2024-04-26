@@ -11,6 +11,9 @@ import math
 from osgeo import gdal
 import scipy.ndimage as nd
 
+# Tell GDAL to raise exceptions on errors
+gdal.UseExceptions()
+
 class GeoTiff(object):
     """A GeoTiff object provides an interface to reading/writing geotiffs in
     a tiled fashion, and to many other additional operations."""
@@ -62,7 +65,8 @@ class GeoTiff(object):
         if self.memory_file is not None:
             self.close_memory_file()
         else:
-            self.getAttributeTable()
+            if np.issubdtype(self.profile['dtype'], np.integer):
+                self.getAttributeTable()
             self.dataset.close()
 
     @classmethod
@@ -101,7 +105,7 @@ class GeoTiff(object):
                 nodata_mask = np.ones((dataset.width, dataset.height)) * no_data_value
                 dataset.write(nodata_mask.astype(profile['dtype']), 1)
 
-        open_file = rasterio.open(filename, 'r+', **profile)
+        open_file = rasterio.open(filename, 'r+')
         if not open_file:
             sys.exit("GeoTiff Error: copy_to_new_file() being called with invalid Geotiff data or filepath")
         
