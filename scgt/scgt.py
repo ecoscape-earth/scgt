@@ -11,6 +11,9 @@ import math
 from osgeo import gdal
 import scipy.ndimage as nd
 
+# Tell GDAL to raise exceptions on errors
+gdal.UseExceptions()
+
 class GeoTiff(object):
     """A GeoTiff object provides an interface to reading/writing geotiffs in
     a tiled fashion, and to many other additional operations."""
@@ -62,7 +65,8 @@ class GeoTiff(object):
         if self.memory_file is not None:
             self.close_memory_file()
         else:
-            self.getAttributeTable()
+            if np.issubdtype(self.profile['dtype'], np.integer):
+                self.getAttributeTable()
             self.dataset.close()
 
     @classmethod
