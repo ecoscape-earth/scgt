@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scgt"
-version = "0.0.7"
+version = "0.0.8"
 authors = [
         {name="Jasmine Tai", email="jctai@ucsc.edu"},
         {name="Natalie Valett", email="nvalett@ucsc.edu"},
