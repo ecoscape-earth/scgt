@@ -4,12 +4,14 @@ import shutil
 from rasterio.windows import Window, from_bounds
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 from rasterio.io import MemoryFile
+from rasterio.mask import mask
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import math
 from osgeo import gdal
 import scipy.ndimage as nd
+from shapely.geometry import mapping
 
 # Tell GDAL to raise exceptions on errors
 gdal.UseExceptions()
@@ -487,6 +489,39 @@ class GeoTiff(object):
             src_window = Window(tile.x + x_offset, tile.y + y_offset, tile.w, tile.h)
             output.dataset.write(self.dataset.read(window=src_window), window=window)
 
+        return output
+
+    def crop_to_polygon(self, polygon, filename=None, in_memory=False):
+        """
+        Crop the GeoTIFF using a specified polygon and save to a new file or return in-memory file.
+        
+        :param polygon: A Shapely polygon specifying the area to crop. Should be in same coordinate system.
+        :param filename: The path where the cropped GeoTIFF should be saved.
+        :param in_memory: whether to create the file in memory only. filename is ignored if True.
+        :return: the GeoTiff object for the new file.
+        """
+        # Mask the dataset using the polygon to create a new cropped image
+        out_image, out_transform = mask(self.dataset, [polygon], crop=True)
+
+        # Update the metadata to reflect the size of the masked image
+        profile = self.dataset.profile.copy()
+        profile.update({
+            'height': out_image.shape[1],
+            'width': out_image.shape[2],
+            'transform': out_transform,
+            'nodata': None,
+            'compress': 'lzw',
+            'bigtiff': 'YES'
+        })
+
+        if in_memory:
+            output = GeoTiff.create_memory_file(profile)
+        else: 
+            assert filename is not None, "filename must be provided if not creating file in memory"
+            output = GeoTiff.copy_to_new_file(filename, profile)
+
+        output.dataset.write(out_image)
+        
         return output
 
     def reproject_from_crs(self, output_path, dest_crs, res=None, resampling="nearest"):
