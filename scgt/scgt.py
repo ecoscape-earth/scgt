@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 import math
 from osgeo import gdal
 import scipy.ndimage as nd
-from shapely.geometry import mapping
 
 # Tell GDAL to raise exceptions on errors
 gdal.UseExceptions()
@@ -385,6 +384,17 @@ class GeoTiff(object):
             window = Window(x0, y0, width, height)
             m = self.dataset.read(band, window=window)
         return m
+    
+    def get_bounds_within_border(self, border):
+        """
+        Returns the bounds of the geotiff after excluding a border of pixels.
+        Useful for if you need to crop a border of X pixels from the geotiff
+        with crop_to_new_file(), but don't have the exact bounds.
+        :param border: Border to exclude from bounds, in number of pixels.
+        :return: Bounding box (xmin, ymin, xmax, ymax) of coordinates as a tuple. 
+        """
+        inner_window = Window(border, border, self.width - border * 2, self.height - border * 2)
+        return self.dataset.window_bounds(inner_window)
 
     def file_write(self, filename):
         """

@@ -358,6 +358,27 @@ If band is specified, then the result is a 2D matrix of shape (x1 - x0, y1 - y0)
 
 2D Numpy array for the values, if band is specified, otherwise 3D array.
 
+<a id="scgt.GeoTiff.get_bounds_within_border"></a>
+
+#### get\_bounds\_within\_border
+
+```python
+def get_bounds_within_border(border)
+```
+
+Returns the bounds of the geotiff after excluding a border of pixels.
+
+Useful for if you need to crop a border of X pixels from the geotiff
+with crop_to_new_file(), but don't have the exact bounds.
+
+**Arguments**:
+
+- `border`: Border to exclude from bounds, in number of pixels.
+
+**Returns**:
+
+Bounding box (xmin, ymin, xmax, ymax) of coordinates as a tuple.
+
 <a id="scgt.GeoTiff.file_write"></a>
 
 #### file\_write
