@@ -86,9 +86,9 @@ class GeoTiff(object):
         return cls(open_file)
 
     @classmethod
-    def copy_to_new_file(cls, filename, profile, no_data_value=None):
+    def create_new_file(cls, filename, profile, no_data_value=None):
         """ creates a new file to store empty GeoTiff obj with specified params.
-        :param filename: file name to which to copy the file.
+        :param filename: file name for the new file. 
         :param profile: profile for writing the geotiff.
         :param no_data_value (dtype of raster): value to be used as transparent 'nodata' value, otherwise fills 0's
             (note that if geotiff is of unsigned type, like uint8, the no_data value must be  a positive int in the data
@@ -158,7 +158,7 @@ class GeoTiff(object):
 
         # copies src tif file to destination
         shutil.copy(src=self.filepath, dst=filename)
-        tiff = GeoTiff.copy_to_new_file(filename, profile=profile, no_data_value=no_data_value)
+        tiff = GeoTiff.create_new_file(filename, profile=profile, no_data_value=no_data_value)
         
         return tiff
 
@@ -217,7 +217,40 @@ class GeoTiff(object):
         #Returns a reader with the specified, w, h, b.
         return Reader(self, b, w, h)
 
-    def set_tile(self, tile):
+    def set_tile(self, tile, geotiff_includes_border=False):
+        """
+        Sets a tile in the geotiff.  The tile knows where it belongs, 
+        via its x, y, w, h, and b attributes.
+        
+        :param tile: the tile to be set.
+        :param geotiff_includes_borer: whether the geotiff includes the border or not.
+            This latter is used because the output geotiff may not include a border,
+            so the operation needs to be offset. 
+        """
+        x, y, w, h, b = tile.x, tile.y, tile.w, tile.h, tile.b
+        # If the geotiff does not include the border, then the tile should 
+        # be shifted accordingly.
+        if not geotiff_includes_border:
+            x -= b
+            y -= b
+        # Converts the type to the appropriate type for the output.
+        if isinstance(tile.m, np.ndarray):
+            T = tile.m.astype(self.dataset.dtypes[0])
+        else:
+            T = tile.m.detach().numpy().astype(self.dataset.dtypes[0])
+        # Trims T to the proper size. 
+        # First, the border of T is never written. 
+        if b > 0:
+            T = T[:, b:-b, b:-b]
+        # Then, the tile is trimmed if it goes out of bounds.
+        w = max(w, self.width - x)
+        h = max(h, self.height - y)
+        T = T[:, :h, :w]
+        # Sets geotiff's data to the values of the tile.
+        self.dataset.write(T, window=Window(x, y, w, h))
+
+
+    def set_tile_old(self, tile):
         """
         Sets a tile in the geotiff.  You may wonder, where?  The answer is that
         each tile knows where it belongs!
@@ -489,7 +522,7 @@ class GeoTiff(object):
             output = GeoTiff.create_memory_file(profile)
         else:
             assert filename is not None, "filename must be provided if not creating file in memory"
-            output = GeoTiff.copy_to_new_file(filename, profile)
+            output = GeoTiff.create_new_file(filename, profile)
 
         # copy data within the cropping window over to new file
         reader = output.get_reader(b=0, w=10000, h=10000)
@@ -528,7 +561,7 @@ class GeoTiff(object):
             output = GeoTiff.create_memory_file(profile)
         else: 
             assert filename is not None, "filename must be provided if not creating file in memory"
-            output = GeoTiff.copy_to_new_file(filename, profile)
+            output = GeoTiff.create_new_file(filename, profile)
 
         output.dataset.write(out_image)
         
@@ -561,7 +594,7 @@ class GeoTiff(object):
             'bigtiff': 'YES'
         })
 
-        with GeoTiff.copy_to_new_file(output_path, kwargs) as dest:
+        with GeoTiff.create_new_file(output_path, kwargs) as dest:
             for i in range(1, self.dataset.count + 1):
                 reproject(
                     source=rasterio.band(self.dataset, i),
@@ -649,6 +682,9 @@ class GeoTiff(object):
             self.memory_file.close()
         elif self.memory_file is None:
             print(f'The current GeoTiff object ("{self.filepath}") is not stored in memory.')
+
+# For compatibility. 
+GeoTiff.copy_to_new_file = GeoTiff.create_new_file
 
 class Reader(object):
     """
