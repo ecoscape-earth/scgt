@@ -489,7 +489,8 @@ class GeoTiff(object):
                                                   cmap="inferno"))
         plt.show()
 
-    def crop_to_new_file(self, bounds, padding=0, filename=None, in_memory=False):
+    def crop_to_new_file(self, bounds, data_type=None, padding=0, filename=None, 
+                         in_memory=False):
         """
         Create a new geotiff by cropping the current one and writing to a new file.
         :param bounds: bounding box (xmin, ymin, xmax, ymax) for the output (in the same coordinate system)
@@ -514,8 +515,10 @@ class GeoTiff(object):
             'transform': self.dataset.window_transform(cropped_window),
             'nodata': None,
             'compress': 'LZW',
-            'bigtiff': 'YES'
+            'bigtiff': 'YES',
         })
+        if data_type is not None:
+            profile.update({'dtype': data_type})
 
         # create new file
         if in_memory:
