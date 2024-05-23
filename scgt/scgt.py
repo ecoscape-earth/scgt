@@ -528,12 +528,11 @@ class GeoTiff(object):
         # keep window within bounds of self, and round lengths and offsets to keep windows aligned
         src_window = from_bounds(*self.dataset.bounds, transform=self.dataset.transform)
         cropped_window = from_bounds(*bounds, transform=self.dataset.transform).intersection(src_window).round_lengths().round_offsets(pixel_precision=0)
-        x_offset, y_offset = cropped_window.col_off, cropped_window.row_off
-
         # update metadata for new file based on the main window of interest
         profile = self.dataset.profile
+        print("Cropped window:", cropped_window.width, cropped_window.height)
         profile.update({
-            'width': cropped_window.width,
+            'width': cropped_window.width, # Jasmine can we have pixel values here? 
             'height': cropped_window.height,
             'transform': self.dataset.window_transform(cropped_window),
             'nodata': None,
@@ -542,22 +541,12 @@ class GeoTiff(object):
         })
         if data_type is not None:
             profile.update({'dtype': data_type})
-
         # create new file
         if in_memory:
             output = GeoTiff.create_memory_file(profile)
         else:
             assert filename is not None, "filename must be provided if not creating file in memory"
             output = GeoTiff.create_new_file(filename, profile)
-
-        # copy data within the cropping window over to new file
-        reader = output.get_reader(b=0, w=10000, h=10000)
-        for tile in reader:
-            tile.fit_to_bounds(width=output.width, height=output.height)
-            window = Window(tile.x, tile.y, tile.w, tile.h)
-            src_window = Window(tile.x + x_offset, tile.y + y_offset, tile.w, tile.h)
-            output.dataset.write(self.dataset.read(window=src_window), window=window)
-
         return output
 
     def crop_to_polygon(self, polygon, filename=None, in_memory=False):
