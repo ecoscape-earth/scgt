@@ -725,12 +725,6 @@ class Reader(object):
         if self.w is None or self.h is None:
             self.w, self.h = self.geo.block_shapes[0]
 
-        self.tile_space_dims = (math.ceil(geo.width/self.w),
-                                math.ceil(geo.height/self.h))  # Dimensions for the Tile matrix (Tiles/row, Tiles/col)
-
-
-        # Iterator state variables
-
     # Returns an iterator for Reader
     def __iter__(self):
         """
@@ -738,7 +732,7 @@ class Reader(object):
         :return: the tiles.
         """
         # Tuple: Upper-left corner coordinates of the current Tile interior. 
-        self.tile_corner = np.array([self.b, self.b]) 
+        self.tile_corner =(self.b, self.b) 
         return self
 
     # Read and return the next tile
@@ -758,7 +752,7 @@ class Reader(object):
         self.tile_corner += (self.w, 0)
         # Update corner if out of bounds
         if self.tile_corner[0] > self.geo.width:
-            self.tile_corner = (self.border, self.tile_corner[1] + self.h)
+            self.tile_corner = (self.b, self.tile_corner[1] + self.h)
         return tile
 
 
