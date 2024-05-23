@@ -386,13 +386,9 @@ class GeoTiff(object):
         """Gets the entire content of the geotiff as a tile with specified border.
         :return: A tile representing the entire geotiff.
         """
-        if self.width <= 2 * b or self.height <= 2 * b:
-            # Too small to return as tile with non-empty core. 
-            return None
-        window = Window(0, 0, self.width, self.height)
-        arr = self.dataset.read(window=window)
-        return Tile(self.width - 2 * b, self.height - 2 * b, 
-                    b, self.bands, b, b, arr)
+        tile = self.get_tile(self.width, self.height, b, b, b)
+        print("Return single tile:", tile)
+        return tile
 
     def get_tile_from_window(self, w, border):
         """
@@ -750,6 +746,7 @@ class Reader(object):
             raise StopIteration
         # Get the Tile
         tile = self.geo.get_tile(w=self.w, h=self.h, b=self.b, x=x, y=y)
+        print("Returning:", tile)
         # Update iterator states
         self.tile_corner[0] += self.w
         # Update corner if out of bounds
@@ -781,6 +778,13 @@ class Tile(object):
         self.y = y
         self.m = m # m is a (2b + w) x (2b + h) x c numpy matrix which contains
                    # the actual data.
+
+    def __str__(self):
+        """
+        String representation of the tile.
+        :return: the string representation.
+        """
+        return f"Tile at ({self.x}, {self.y}) of size ({self.w}, {self.h}) with border {self.b}"
 
     def get_window(self, includes_border=True):
         """
