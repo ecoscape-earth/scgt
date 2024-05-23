@@ -732,7 +732,7 @@ class Reader(object):
         :return: the tiles.
         """
         # Tuple: Upper-left corner coordinates of the current Tile interior. 
-        self.tile_corner =(self.b, self.b) 
+        self.tile_corner = [self.b, self.b]
         return self
 
     # Read and return the next tile
@@ -742,17 +742,19 @@ class Reader(object):
         :return: a tile, each time.
         """
         # Get x,y coordinates for the current Tile
+        print("Corner: ", self.tile_corner)
         x, y = self.tile_corner
-        # Check if all tiles have been traversed
-        if x > self.geo.width or y > self.geo.height:
+        # Check if all tiles have been traversed.  No point having a tile
+        # unless its start (x, or y) fits within the border. 
+        if x > self.geo.width - self.b or y > self.geo.height - self.b:
             raise StopIteration
         # Get the Tile
         tile = self.geo.get_tile(w=self.w, h=self.h, b=self.b, x=x, y=y)
         # Update iterator states
-        self.tile_corner += (self.w, 0)
+        self.tile_corner[0] += self.w
         # Update corner if out of bounds
-        if self.tile_corner[0] > self.geo.width:
-            self.tile_corner = (self.b, self.tile_corner[1] + self.h)
+        if self.tile_corner[0] > self.geo.width - self.b:
+            self.tile_corner = [self.b, self.tile_corner[1] + self.h]
         return tile
 
 
