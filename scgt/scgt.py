@@ -53,6 +53,7 @@ class GeoTiff(object):
             self.profile = self.dataset.profile
             self.crs = self.dataset.crs
             self.memory_file = memory_file
+            print("Opened GeoTiff file: ", self.filepath, " with size: ", self.size)
 
 
     def __enter__(self):
@@ -223,13 +224,16 @@ class GeoTiff(object):
         via its x, y, w, h, and b attributes.
         
         :param tile: the tile to be set.
-        :param geotiff_includes_borer: whether the geotiff includes the border or not.
+        :param geotiff_includes_borer: whether the destination geotiff includes the border or not.
             This latter is used because the output geotiff may not include a border,
             so the operation needs to be offset. 
+            
+        Note that the function only copies the tile core, not the border.
         """
         x, y, w, h, b = tile.x, tile.y, tile.w, tile.h, tile.b
-        # If the geotiff does not include the border, then the tile should 
-        # be shifted accordingly.
+        print("Asking to write a tile of shape:", w, h, "at position:", x, y, "with border:", b, "data shape:", tile.m.shape)
+        # If the geotiff does not include the border, then the position in which to 
+        # write the tile should be shifted accordingly.
         if not geotiff_includes_border:
             x -= b
             y -= b
@@ -242,15 +246,23 @@ class GeoTiff(object):
         # First, the border of T is never written. 
         if b > 0:
             T = T[:, b:-b, b:-b]
+            print("T shape:", T.shape)
         # Then, the tile is trimmed if it goes out of bounds.
         w = max(w, self.width - x)
         h = max(h, self.height - y)
         T = T[:, :h, :w]
+        
+        print("T final shape:", T.shape)
+        print("Writing to window:", x, y, w, h)
+        print("The dataset shape is:", self.dataset.width, self.dataset.height)
+        plt.figure(figsize=(5, 5))
+        plt.imshow(T[0])
+        plt.title("Tile in set_tile")
+        plt.show()
         # Sets geotiff's data to the values of the tile.
         self.dataset.write(T, window=Window(x, y, w, h))
 
 
-    def set_tile_old(self, tile):
         """
         Sets a tile in the geotiff.  You may wonder, where?  The answer is that
         each tile knows where it belongs!
@@ -799,7 +811,7 @@ class Tile(object):
             window=Window(self.x, self.y, self.w, self.h)
         return window
 
-    def draw_tile(self, width=5, height=5, band=0):
+    def draw_tile(self, width=5, height=5, band=0, title=None):
         """
         Plots a tile using matplotlib.
         :param width: of figure.
@@ -809,6 +821,8 @@ class Tile(object):
         """
         # plots tile's numpy array representation at given band
         plt.figure(figsize=(width,height))
+        if title:
+            plt.title(title)
         plt.imshow(self.m[band])
         plt.show()
 
