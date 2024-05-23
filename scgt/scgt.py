@@ -366,18 +366,33 @@ class GeoTiff(object):
         :param y: y of tile in pixel grid.
         :return: The tile.
         """
-        window = Window(x - b, y - b, w + 2*b, h + 2*b)
+        # Computes the max size we can have. 
+        x0 = x - b
+        y0 = y - b
+        x1 = min(self.width, x + w + 2 * b)
+        y1 = min(self.height, y + h + 2 * b)
+        core_w = x1 - x0 - 2 * b
+        core_h = y1 - y0 - 2 * b
+        if core_w <= 0 or core_h <= 0:
+            # We cannot produce such a window with a non-empty core. 
+            return None
+        # Creates the window.
+        window = Window(x0, y0, x1 - x0, y1 - y0)
         arr = self.dataset.read(window=window)
-        tile = Tile(w, h, b, self.bands, x, y, arr)
+        tile = Tile(core_w, core_h, b, self.bands, x, y, arr)
         return tile
 
-    def get_all_as_tile(self):
-        """Gets the entire content of the geotiff as a tile with empty border.
+    def get_all_as_tile(self, border=0):
+        """Gets the entire content of the geotiff as a tile with specified border.
         :return: A tile representing the entire geotiff.
         """
+        if self.width <= 2 * border or self.height <= 2 * border:
+            # Too small to return as tile with non-empty core. 
+            return None
         window = Window(0, 0, self.width, self.height)
         arr = self.dataset.read(window=window)
-        return Tile(self.width, self.height, 0, self.bands, 0, 0, arr)
+        return Tile(self.width - 2 * border, self.height - 2 * border, 
+                    border, self.bands, border, border, arr)
 
     def get_tile_from_window(self, w, border):
         """
@@ -722,8 +737,8 @@ class Reader(object):
         Tile iterator.
         :return: the tiles.
         """
-        self.tiles_read = 0       # Int: Tiles read
-        self.tile_corner = np.array([0, 0]) # Tuple (x, y): Upper-left corner coordinates of the current Tile
+        # Tuple: Upper-left corner coordinates of the current Tile interior. 
+        self.tile_corner = np.array([self.b, self.b]) 
         return self
 
     # Read and return the next tile
@@ -733,40 +748,18 @@ class Reader(object):
         :return: a tile, each time.
         """
         # Get x,y coordinates for the current Tile
-        x,y = self.tile_corner
+        x, y = self.tile_corner
         # Check if all tiles have been traversed
         if x > self.geo.width or y > self.geo.height:
             raise StopIteration
+        # Get the Tile
         tile = self.geo.get_tile(w=self.w, h=self.h, b=self.b, x=x, y=y)
-
         # Update iterator states
-        self.tiles_read += 1
         self.tile_corner += (self.w, 0)
         # Update corner if out of bounds
         if self.tile_corner[0] > self.geo.width:
-            self.tile_corner += (-self.tile_corner[0], self.h)
-
+            self.tile_corner = (self.border, self.tile_corner[1] + self.h)
         return tile
-
-    # Getters
-    def get_tiles_read(self):
-        """
-        :return: Number of tiles read.
-        """
-        return self.tiles_read
-
-    def get_tile_total(self):
-        """
-        :return: total number of tiles to read.
-        """
-        return self.tile_space_dims[0] * self.tile_space_dims[1]
-
-    def get_tile_dims(self):
-        """
-        :return: Tile dimensions.
-        """
-        return self.tile_space_dims
-
 
 
 class Tile(object):
@@ -776,12 +769,12 @@ class Tile(object):
     def __init__(self, w, h, b, c, x, y, m):
         """
         Creates a tile.
-        :param w: Width.
-        :param h: Height.
-        :param b: Border.
+        :param w: Width of inner region only. 
+        :param h: Height of inner region only. 
+        :param b: Border width. 
         :param c: Channels.
-        :param x: x location.
-        :param y: y location.
+        :param x: x location in raster of core region (excluding border). 
+        :param y: y location in raster of core region (excluding border).
         :param m: array.
         """
         self.w = w # width
@@ -796,7 +789,7 @@ class Tile(object):
     def get_window(self, includes_border=True):
         """
         gets Window representation of Tile.
-        By default, Window does not include border.
+        By default, Window includes the border.
         :param includes_border: Whether to include the border.
         :return: the Window object for the tile.
         """
