@@ -382,17 +382,17 @@ class GeoTiff(object):
         tile = Tile(core_w, core_h, b, self.bands, x, y, arr)
         return tile
 
-    def get_all_as_tile(self, border=0):
+    def get_all_as_tile(self, b=0):
         """Gets the entire content of the geotiff as a tile with specified border.
         :return: A tile representing the entire geotiff.
         """
-        if self.width <= 2 * border or self.height <= 2 * border:
+        if self.width <= 2 * b or self.height <= 2 * b:
             # Too small to return as tile with non-empty core. 
             return None
         window = Window(0, 0, self.width, self.height)
         arr = self.dataset.read(window=window)
-        return Tile(self.width - 2 * border, self.height - 2 * border, 
-                    border, self.bands, border, border, arr)
+        return Tile(self.width - 2 * b, self.height - 2 * b, 
+                    b, self.bands, b, b, arr)
 
     def get_tile_from_window(self, w, border):
         """
