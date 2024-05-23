@@ -263,39 +263,41 @@ class GeoTiff(object):
         self.dataset.write(T, window=Window(x, y, w, h))
 
 
-        """
-        Sets a tile in the geotiff.  You may wonder, where?  The answer is that
-        each tile knows where it belongs!
-        :param tile: the tile to be set.
-        :return: Nothing.
-        """
-        # check that tile dimensions are within geotiff bounds, if not alter
-        if tile.x + tile.w > self.width:
-            tile.w = self.width - tile.x
-        if tile.y + tile.h > self.height:
-            tile.h = self.height - tile.y
-        # Converts the type to the appropriate type for the output.
-        if isinstance(tile.m, np.ndarray):
-            T = tile.m.astype(self.dataset.dtypes[0])
-        else:
-            T = tile.m.detach().numpy().astype(self.dataset.dtypes[0])
-        # Adjust T if border exists
-        if tile.b > 0:
-            b = tile.b
-            if tile.x + tile.w == self.width:
-                T = T[:, :, b:]
-            elif tile.x == 0:
-                T = T[:, :, :-b]
-            else:
-                T = T[:, :, b:-b]
-            if tile.y + tile.h == self.height:
-                T = T[:, b:, :]
-            elif tile.y == 0:
-                T = T[:, :-b, :]
-            else:
-                T = T[:, b:-b, :]
-        # Sets geotiff's data to the values of the tile.
-        self.dataset.write(T, window=tile.get_window(includes_border=False))
+    # This is the former set_tile(), which we do not use anymore.
+    # def set_tile(self, tile, geotiff_includes_border=False)
+        # """
+        # Sets a tile in the geotiff.  You may wonder, where?  The answer is that
+        # each tile knows where it belongs!
+        # :param tile: the tile to be set.
+        # :return: Nothing.
+        # """
+        # # check that tile dimensions are within geotiff bounds, if not alter
+        # if tile.x + tile.w > self.width:
+        #     tile.w = self.width - tile.x
+        # if tile.y + tile.h > self.height:
+        #     tile.h = self.height - tile.y
+        # # Converts the type to the appropriate type for the output.
+        # if isinstance(tile.m, np.ndarray):
+        #     T = tile.m.astype(self.dataset.dtypes[0])
+        # else:
+        #     T = tile.m.detach().numpy().astype(self.dataset.dtypes[0])
+        # # Adjust T if border exists
+        # if tile.b > 0:
+        #     b = tile.b
+        #     if tile.x + tile.w == self.width:
+        #         T = T[:, :, b:]
+        #     elif tile.x == 0:
+        #         T = T[:, :, :-b]
+        #     else:
+        #         T = T[:, :, b:-b]
+        #     if tile.y + tile.h == self.height:
+        #         T = T[:, b:, :]
+        #     elif tile.y == 0:
+        #         T = T[:, :-b, :]
+        #     else:
+        #         T = T[:, b:-b, :]
+        # # Sets geotiff's data to the values of the tile.
+        # self.dataset.write(T, window=tile.get_window(includes_border=False))
 
     def get_pixel_from_coord(self, coord):
         """
@@ -440,17 +442,6 @@ class GeoTiff(object):
             window = Window(x0, y0, width, height)
             m = self.dataset.read(band, window=window)
         return m
-    
-    def get_bounds_within_border(self, border):
-        """
-        Returns the bounds of the geotiff after excluding a border of pixels.
-        Useful for if you need to crop a border of X pixels from the geotiff
-        with crop_to_new_file(), but don't have the exact bounds.
-        :param border: Border to exclude from bounds, in number of pixels.
-        :return: Bounding box (xmin, ymin, xmax, ymax) of coordinates as a tuple. 
-        """
-        inner_window = Window(border, border, self.width - border * 2, self.height - border * 2)
-        return self.dataset.window_bounds(inner_window)
 
     def file_write(self, filename):
         """
@@ -511,23 +502,35 @@ class GeoTiff(object):
         fig.colorbar(ax.imshow(self.get_rectangle((0, self.width), (0, self.height), band),
                                                   cmap="inferno"))
         plt.show()
+    
+    def get_bounds_within_border(self, border):
+        """
+        Returns the bounds of the geotiff after excluding a border of pixels.
+        Useful for if you need to crop a border of X pixels from the geotiff
+        with crop_to_new_file(), but don't have the exact bounds.
+        :param border: Border to exclude from bounds, in number of pixels.
+        :return: Bounding box (xmin, ymin, xmax, ymax) of coordinates as a tuple. 
+        """
 
-    def crop_to_new_file(self, bounds, data_type=None, padding=0, filename=None, 
+    def crop_to_new_file(self, border, data_type=None, filename=None, 
                          in_memory=False):
         """
         Create a new geotiff by cropping the current one and writing to a new file.
-        :param bounds: bounding box (xmin, ymin, xmax, ymax) for the output (in the same coordinate system)
-        :param padding: amount of padding in meters to add around the shape bounds.
+        :param border: number of pixels to crop from each side of the geotiff.
         :param filename: path where to write result.
         :param in_memory: whether to create the file in memory only. filename is ignored if True.
         :return: the GeoTiff object for the new file.
         """
-        # add padding to the bounds
-        bounds = (bounds[0] - padding, bounds[1] - padding, bounds[2] + padding, bounds[3] + padding)
+
+        # obtain the bounds based off of the provided border size
+        # note: these couple lines were formerly get_bounds_within_border()
+        inner_window = Window(border, border, self.width - border * 2, self.height - border * 2)
+        bounds = self.dataset.window_bounds(inner_window)
 
         # keep window within bounds of self, and round lengths and offsets to keep windows aligned
         src_window = from_bounds(*self.dataset.bounds, transform=self.dataset.transform)
         cropped_window = from_bounds(*bounds, transform=self.dataset.transform).intersection(src_window).round_lengths().round_offsets(pixel_precision=0)
+
         # update metadata for new file based on the main window of interest
         profile = self.dataset.profile
         print("Cropped window:", cropped_window.width, cropped_window.height)
@@ -539,14 +542,17 @@ class GeoTiff(object):
             'compress': 'LZW',
             'bigtiff': 'YES',
         })
+        
         if data_type is not None:
             profile.update({'dtype': data_type})
+            
         # create new file
         if in_memory:
             output = GeoTiff.create_memory_file(profile)
         else:
             assert filename is not None, "filename must be provided if not creating file in memory"
             output = GeoTiff.create_new_file(filename, profile)
+            
         return output
 
     def crop_to_polygon(self, polygon, filename=None, in_memory=False):
