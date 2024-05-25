@@ -53,7 +53,7 @@ class GeoTiff(object):
             self.profile = self.dataset.profile
             self.crs = self.dataset.crs
             self.memory_file = memory_file
-            print("Opened GeoTiff file: ", self.filepath, " with size: ", self.size)
+            # print("Opened GeoTiff file: ", self.filepath, " with size: ", self.size)
 
 
     def __enter__(self):
@@ -231,7 +231,7 @@ class GeoTiff(object):
         Note that the function only copies the tile core, not the border.
         """
         x, y, w, h, b = tile.x, tile.y, tile.w, tile.h, tile.b
-        print("Asking to write a tile of shape:", w, h, "at position:", x, y, "with border:", b, "data shape:", tile.m.shape)
+        # print("Asking to write a tile of shape:", w, h, "at position:", x, y, "with border:", b, "data shape:", tile.m.shape)
         # If the geotiff does not include the border, then the position in which to 
         # write the tile should be shifted accordingly.
         if not geotiff_includes_border:
@@ -246,58 +246,21 @@ class GeoTiff(object):
         # First, the border of T is never written. 
         if b > 0:
             T = T[:, b:-b, b:-b]
-            print("T shape:", T.shape)
+            # print("T shape:", T.shape)
         # Then, the tile is trimmed if it goes out of bounds.
-        w = max(w, self.width - x)
-        h = max(h, self.height - y)
+        w = min(w, self.width - x)
+        h = min(h, self.height - y)
         T = T[:, :h, :w]
-        
-        print("T final shape:", T.shape)
-        print("Writing to window:", x, y, w, h)
-        print("The dataset shape is:", self.dataset.width, self.dataset.height)
-        plt.figure(figsize=(5, 5))
-        plt.imshow(T[0])
-        plt.title("Tile in set_tile")
-        plt.show()
+        # print("T final shape:", T.shape)
+        # print("Writing to window:", x, y, w, h)
+        # print("The dataset shape is:", self.dataset.width, self.dataset.height)
+        # plt.figure(figsize=(5, 5))
+        # plt.imshow(T[0])
+        # plt.title("Tile in set_tile")
+        # plt.show()
         # Sets geotiff's data to the values of the tile.
         self.dataset.write(T, window=Window(x, y, w, h))
 
-
-    # This is the former set_tile(), which we do not use anymore.
-    # def set_tile(self, tile, geotiff_includes_border=False)
-        # """
-        # Sets a tile in the geotiff.  You may wonder, where?  The answer is that
-        # each tile knows where it belongs!
-        # :param tile: the tile to be set.
-        # :return: Nothing.
-        # """
-        # # check that tile dimensions are within geotiff bounds, if not alter
-        # if tile.x + tile.w > self.width:
-        #     tile.w = self.width - tile.x
-        # if tile.y + tile.h > self.height:
-        #     tile.h = self.height - tile.y
-        # # Converts the type to the appropriate type for the output.
-        # if isinstance(tile.m, np.ndarray):
-        #     T = tile.m.astype(self.dataset.dtypes[0])
-        # else:
-        #     T = tile.m.detach().numpy().astype(self.dataset.dtypes[0])
-        # # Adjust T if border exists
-        # if tile.b > 0:
-        #     b = tile.b
-        #     if tile.x + tile.w == self.width:
-        #         T = T[:, :, b:]
-        #     elif tile.x == 0:
-        #         T = T[:, :, :-b]
-        #     else:
-        #         T = T[:, :, b:-b]
-        #     if tile.y + tile.h == self.height:
-        #         T = T[:, b:, :]
-        #     elif tile.y == 0:
-        #         T = T[:, :-b, :]
-        #     else:
-        #         T = T[:, b:-b, :]
-        # # Sets geotiff's data to the values of the tile.
-        # self.dataset.write(T, window=tile.get_window(includes_border=False))
 
     def get_pixel_from_coord(self, coord):
         """
@@ -312,6 +275,7 @@ class GeoTiff(object):
         if x < 0 or x >= w or y < 0 or y >= h:
             return None
         return x, y
+
     
     def get_coord_from_pixel(self, xy, offset='center'):
         """
@@ -383,8 +347,8 @@ class GeoTiff(object):
         # Computes the max size we can have. 
         x0 = x - b
         y0 = y - b
-        x1 = min(self.width, x + w + 2 * b)
-        y1 = min(self.height, y + h + 2 * b)
+        x1 = min(self.width, x + w + b)
+        y1 = min(self.height, y + h + b)
         core_w = x1 - x0 - 2 * b
         core_h = y1 - y0 - 2 * b
         if core_w <= 0 or core_h <= 0:
@@ -401,7 +365,7 @@ class GeoTiff(object):
         :return: A tile representing the entire geotiff.
         """
         tile = self.get_tile(self.width, self.height, b, b, b)
-        print("Return single tile:", tile)
+        # print("Return single tile:", tile)
         return tile
 
     def get_tile_from_window(self, w, border):
@@ -490,7 +454,7 @@ class GeoTiff(object):
         # Close the dataset and persist the RAT
         ds = None
 
-    def draw_geotiff(self, width=5, height=5, band=1):
+    def draw_geotiff(self, width=5, height=5, band=1, title=None):
         """
         Plots tile's numpy array representation at given band.
         :param width: width of what to plot.
@@ -498,9 +462,11 @@ class GeoTiff(object):
         :param band: band to show.
         """
         plt.figure(figsize=(width, height))
-        fig, ax = plt.subplots(figsize = (width, height))
-        fig.colorbar(ax.imshow(self.get_rectangle((0, self.width), (0, self.height), band),
-                                                  cmap="inferno"))
+        plt.imshow(self.get_rectangle((0, self.width), (0, self.height), band),
+                                                  cmap="inferno")
+        plt.colorbar(shrink=0.6)
+        if title:
+            plt.title(title)
         plt.show()
     
     def get_bounds_within_border(self, border):
@@ -533,7 +499,7 @@ class GeoTiff(object):
 
         # update metadata for new file based on the main window of interest
         profile = self.dataset.profile
-        print("Cropped window:", cropped_window.width, cropped_window.height)
+        # print("Cropped window:", cropped_window.width, cropped_window.height)
         profile.update({
             'width': cropped_window.width, # Jasmine can we have pixel values here? 
             'height': cropped_window.height,
@@ -745,7 +711,7 @@ class Reader(object):
         :return: a tile, each time.
         """
         # Get x,y coordinates for the current Tile
-        print("Corner: ", self.tile_corner)
+        # print("Corner: ", self.tile_corner)
         x, y = self.tile_corner
         # Check if all tiles have been traversed.  No point having a tile
         # unless its start (x, or y) fits within the border. 
@@ -753,7 +719,7 @@ class Reader(object):
             raise StopIteration
         # Get the Tile
         tile = self.geo.get_tile(w=self.w, h=self.h, b=self.b, x=x, y=y)
-        print("Returning:", tile)
+        # print("Returning:", tile)
         # Update iterator states
         self.tile_corner[0] += self.w
         # Update corner if out of bounds
@@ -818,7 +784,8 @@ class Tile(object):
         plt.figure(figsize=(width,height))
         if title:
             plt.title(title)
-        plt.imshow(self.m[band])
+        plt.imshow(self.m[band], cmap='inferno')
+        plt.colorbar(shrink=0.6)
         plt.show()
 
     def fit_to_bounds(self, width, height):
