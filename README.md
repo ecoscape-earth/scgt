@@ -13,18 +13,9 @@ including iterating over their tiles.
 * Coen Adler (ctadler@ucsc.edu)
 * Artie Nazarov (anazarov@ucsc.edu)
 
-## Basic Usage
-
-```
-from scgt import GeoTiff, Tile, Reader
-
-gt_in = GeoTiff("somefile.tif")
-reader = gt.get_reader(b=border_size, w=block_size, h=block_size)
-with gt_in.clone_shape("outputfile.tif") as gt_out:
-    for tile in reader:
-        new_tile = process(tile)
-        gt_out.set_tile(new_tile)
-```
+This package provides utilities for working with geotiff files, including 
+ways to read them (both all at once, and tile by tile), and to write them, 
+and to create new geotiff files from scratch. 
 
 For more details, see [the documentation](Documentation.md).
 

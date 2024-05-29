@@ -78,18 +78,18 @@ Creates a GeoTiff object from a filename.
 
 the GeoTiff object.
 
-<a id="scgt.GeoTiff.copy_to_new_file"></a>
+<a id="scgt.GeoTiff.create_new_file"></a>
 
-#### copy\_to\_new\_file
+#### create\_new\_file
 
 ```python
 @classmethod
-def copy_to_new_file(cls, filename, profile, no_data_value=None)
+def create_new_file(cls, filename, profile, no_data_value=None)
 ```
 
 creates a new file to store empty GeoTiff obj with specified params.
 
-:param filename: file name to which to copy the file.
+:param filename: file name for the new file. 
 :param profile: profile for writing the geotiff.
 :param no_data_value (dtype of raster): value to be used as transparent 'nodata' value, otherwise fills 0's
     (note that if geotiff is of unsigned type, like uint8, the no_data value must be  a positive int in the data
@@ -181,20 +181,21 @@ some tiles may be smaller than others.
 #### set\_tile
 
 ```python
-def set_tile(tile)
+def set_tile(tile, geotiff_includes_border=False)
 ```
 
-Sets a tile in the geotiff.  You may wonder, where?  The answer is that
+Sets a tile in the geotiff.  The tile knows where it belongs, 
 
-each tile knows where it belongs!
+via its x, y, w, h, and b attributes.
 
 **Arguments**:
 
 - `tile`: the tile to be set.
+- `geotiff_includes_borer`: whether the destination geotiff includes the border or not.
+This latter is used because the output geotiff may not include a border,
+    so the operation needs to be offset. 
 
-**Returns**:
-
-Nothing.
+Note that the function only copies the tile core, not the border.
 
 <a id="scgt.GeoTiff.get_pixel_from_coord"></a>
 
@@ -306,10 +307,10 @@ The tile.
 #### get\_all\_as\_tile
 
 ```python
-def get_all_as_tile()
+def get_all_as_tile(b=0)
 ```
 
-Gets the entire content of the geotiff as a tile with empty border.
+Gets the entire content of the geotiff as a tile with specified border.
 
 **Returns**:
 
@@ -358,27 +359,6 @@ If band is specified, then the result is a 2D matrix of shape (x1 - x0, y1 - y0)
 
 2D Numpy array for the values, if band is specified, otherwise 3D array.
 
-<a id="scgt.GeoTiff.get_bounds_within_border"></a>
-
-#### get\_bounds\_within\_border
-
-```python
-def get_bounds_within_border(border)
-```
-
-Returns the bounds of the geotiff after excluding a border of pixels.
-
-Useful for if you need to crop a border of X pixels from the geotiff
-with crop_to_new_file(), but don't have the exact bounds.
-
-**Arguments**:
-
-- `border`: Border to exclude from bounds, in number of pixels.
-
-**Returns**:
-
-Bounding box (xmin, ymin, xmax, ymax) of coordinates as a tuple.
-
 <a id="scgt.GeoTiff.file_write"></a>
 
 #### file\_write
@@ -413,7 +393,7 @@ To be called in __exit__ as to update the RAT with any new values.
 #### draw\_geotiff
 
 ```python
-def draw_geotiff(width=5, height=5, band=1)
+def draw_geotiff(width=5, height=5, band=1, title=None)
 ```
 
 Plots tile's numpy array representation at given band.
@@ -424,20 +404,40 @@ Plots tile's numpy array representation at given band.
 - `height`: height of the plot.
 - `band`: band to show.
 
+<a id="scgt.GeoTiff.get_bounds_within_border"></a>
+
+#### get\_bounds\_within\_border
+
+```python
+def get_bounds_within_border(border)
+```
+
+Returns the bounds of the geotiff after excluding a border of pixels.
+
+Useful for if you need to crop a border of X pixels from the geotiff
+with crop_to_new_file(), but don't have the exact bounds.
+
+**Arguments**:
+
+- `border`: Border to exclude from bounds, in number of pixels.
+
+**Returns**:
+
+Bounding box (xmin, ymin, xmax, ymax) of coordinates as a tuple.
+
 <a id="scgt.GeoTiff.crop_to_new_file"></a>
 
 #### crop\_to\_new\_file
 
 ```python
-def crop_to_new_file(bounds, padding=0, filename=None, in_memory=False)
+def crop_to_new_file(border, data_type=None, filename=None, in_memory=False)
 ```
 
 Create a new geotiff by cropping the current one and writing to a new file.
 
 **Arguments**:
 
-- `bounds`: bounding box (xmin, ymin, xmax, ymax) for the output (in the same coordinate system)
-- `padding`: amount of padding in meters to add around the shape bounds.
+- `border`: number of pixels to crop from each side of the geotiff.
 - `filename`: path where to write result.
 - `in_memory`: whether to create the file in memory only. filename is ignored if True.
 
@@ -629,42 +629,6 @@ Tile iterator implementation.
 
 a tile, each time.
 
-<a id="scgt.Reader.get_tiles_read"></a>
-
-#### get\_tiles\_read
-
-```python
-def get_tiles_read()
-```
-
-**Returns**:
-
-Number of tiles read.
-
-<a id="scgt.Reader.get_tile_total"></a>
-
-#### get\_tile\_total
-
-```python
-def get_tile_total()
-```
-
-**Returns**:
-
-total number of tiles to read.
-
-<a id="scgt.Reader.get_tile_dims"></a>
-
-#### get\_tile\_dims
-
-```python
-def get_tile_dims()
-```
-
-**Returns**:
-
-Tile dimensions.
-
 <a id="scgt.Tile"></a>
 
 ## Tile Objects
@@ -688,13 +652,27 @@ Creates a tile.
 
 **Arguments**:
 
-- `w`: Width.
-- `h`: Height.
-- `b`: Border.
+- `w`: Width of inner region only.
+- `h`: Height of inner region only.
+- `b`: Border width.
 - `c`: Channels.
-- `x`: x location.
-- `y`: y location.
+- `x`: x location in raster of core region (excluding border).
+- `y`: y location in raster of core region (excluding border).
 - `m`: array.
+
+<a id="scgt.Tile.__str__"></a>
+
+#### \_\_str\_\_
+
+```python
+def __str__()
+```
+
+String representation of the tile.
+
+**Returns**:
+
+the string representation.
 
 <a id="scgt.Tile.get_window"></a>
 
@@ -706,7 +684,7 @@ def get_window(includes_border=True)
 
 gets Window representation of Tile.
 
-By default, Window does not include border.
+By default, Window includes the border.
 
 **Arguments**:
 
@@ -721,7 +699,7 @@ the Window object for the tile.
 #### draw\_tile
 
 ```python
-def draw_tile(width=5, height=5, band=0)
+def draw_tile(width=5, height=5, band=0, title=None)
 ```
 
 Plots a tile using matplotlib.
