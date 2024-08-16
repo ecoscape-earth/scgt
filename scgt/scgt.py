@@ -225,8 +225,8 @@ class GeoTiff(object):
         
         :param tile: the tile to be set.
         :param geotiff_includes_borer: whether the destination geotiff includes the border or not.
-            This latter is used because the output geotiff may not include a border,
-            so the operation needs to be offset. 
+            If the destination geotiff does not include a border, then the tile border is not 
+            written to the geotiff, and the writing is offset accordingly. 
             
         Note that the function only copies the tile core, not the border.
         """

@@ -264,7 +264,6 @@ def set_tile_from_coord(coord, value, tile_scale=4)
 ```
 
 Sets a tile to a (constant) value, given the coordinates. This is useful
-
 to draw on a geotiff.
 
 **Arguments**:
