@@ -734,7 +734,7 @@ class Reader(object):
         y0 = y - self.b
         x1 = min(self.geo.width - self.margin, x + self.w) + self.b
         y1 = min(self.geo.height - self.margin, y + self.h) + self.b
-        print(f"Reading tile from ({x0}, {y0}) to ({x1}, {y1})")
+        # print(f"Reading tile from ({x0}, {y0}) to ({x1}, {y1})")
         # Tile dimensions.
         tile_w = x1 - x0
         tile_h = y1 - y0
@@ -748,6 +748,7 @@ class Reader(object):
         y_max_window = min(self.geo.height, y1)
         window_w = x_max_window - x_min_window
         window_h = y_max_window - y_min_window
+        # print(f"Reading from geotiff from ({x_min_window}, {y_min_window}) to ({x_max_window}, {y_max_window})")
         window = Window(x_min_window, y_min_window, window_w, window_h)
         w_arr = self.geo.dataset.read(window=window)
         # Computes minimum position in arr that can be filled from geotiff, and fills it.  
@@ -755,7 +756,7 @@ class Reader(object):
         y_min = - min(0, y0)
         arr[:, y_min:y_min + window_h, x_min:x_min + window_w] = w_arr
         # Creates the tile.
-        tile = Tile(window_w - 2 * self.margin, window_h - 2 * self.margin, self.b, self.geo.bands, x, y, arr)        
+        tile = Tile(tile_w - 2 * self.b, tile_h - 2 * self.b, self.b, self.geo.bands, x, y, arr)        
         # Update iterator states
         self.tile_corner[0] += self.w
         # Update corner if out of bounds
