@@ -677,19 +677,30 @@ class Reader(object):
     """
     A reader iterates through the tiles of a geotiff.
     """
-    def __init__(self, geo, b=0, w=None, h=None):
+    def __init__(self, geo, b=0, p=0, w=None, h=None, pad_value=0):
         """
         Initializes a reader.
         :param geo: geotiff to read.
         :param b: border of tiles.
+        :param p: padding of tiles. 
         :param w: width of tiles.
         :param h: height of tiles.
+        :param pad_value: value to pad the tiles with.
+        If the padding is 0, if the region has size m x n, then only the internal portion of size 
+        (m - 2b) x (n - 2b) will be part of a tile "core", and so processed. 
+        If the padding is equal to the border, then the entire region of size m x n will be part 
+        of the tile core. 
         """
+        assert p <= b, "Padding must be no more than border"
         # dimensions optional: if none given reader will default to natural block dimenstions
         self.geo = geo  # GeoTiff object
         self.b = b      # window border
+        self.p = p      # window padding
         self.w = w      # window width
         self.h = h      # window height
+        self.margin = b - p  # margin.  This is the width of the region at the border that will not be 
+                        # part of the tile core.
+        self.pad_value = pad_value
         # if w, h not defined set it to block size
         if self.w is None or self.h is None:
             self.w, self.h = self.geo.block_shapes[0]
@@ -700,8 +711,8 @@ class Reader(object):
         Tile iterator.
         :return: the tiles.
         """
-        # Tuple: Upper-left corner coordinates of the current Tile interior. 
-        self.tile_corner = [self.b, self.b]
+        # Tuple: Upper-left corner coordinates of the current Tile interior in the geotiff. 
+        self.tile_corner = [self.margin, self.margin]
         return self
 
     # Read and return the next tile
@@ -715,16 +726,39 @@ class Reader(object):
         x, y = self.tile_corner
         # Check if all tiles have been traversed.  No point having a tile
         # unless its start (x, or y) fits within the border. 
-        if x > self.geo.width - self.b or y > self.geo.height - self.b:
+        if x > self.geo.width - self.margin or y > self.geo.height - self.margin:
             raise StopIteration
-        # Get the Tile
-        tile = self.geo.get_tile(w=self.w, h=self.h, b=self.b, x=x, y=y)
-        # print("Returning:", tile)
+        # Tile dimensions
+        x0 = x - self.b
+        y0 = y - self.b
+        x1 = min(self.geo.width - self.margin, x + self.w) + self.b
+        y1 = min(self.geo.height - self.margin, y + self.h) + self.b
+        # Tile dimensions.
+        tile_w = x1 - x0
+        tile_h = y1 - y0
+        # Gets an empty array. 
+        arr = np.zeros((self.geo.bands, tile_h, tile_w))
+        arr.fill(self.pad_value)
+        # Computes the window to read the geotiff and reads it. 
+        x_min_window = max(0, x0)
+        y_min_window = max(0, y0)
+        x_max_window = min(self.geo.width, x1)
+        y_max_window = min(self.geo.height, y1)
+        window_w = x_max_window - x_min_window
+        window_h = y_max_window - y_min_window
+        window = Window(x_min_window, y_min_window, window_w, window_h)
+        w_arr = self.geo.dataset.read(window=window)
+        # Computes minimum position in arr that can be filled from geotiff, and fills it.  
+        x_min = - min(0, x0)
+        y_min = - min(0, y0)
+        arr[y_min:y_min + window_h, x_min:x_min + window_w] = w_arr
+        # Creates the tile.
+        tile = Tile(self.w, self.h, self.b, self.geo.bands, x, y, arr)        
         # Update iterator states
         self.tile_corner[0] += self.w
         # Update corner if out of bounds
-        if self.tile_corner[0] > self.geo.width - self.b:
-            self.tile_corner = [self.b, self.tile_corner[1] + self.h]
+        if self.tile_corner[0] > self.geo.width - self.margin:
+            self.tile_corner = [self.margin, self.tile_corner[1] + self.h]
         return tile
 
 
