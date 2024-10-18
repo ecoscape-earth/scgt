@@ -691,6 +691,7 @@ class Reader(object):
         If the padding is equal to the border, then the entire region of size m x n will be part 
         of the tile core. 
         """
+        assert w is not None and h is not None, "Width and height must be defined"
         assert p <= b, "Padding must be no more than border"
         # dimensions optional: if none given reader will default to natural block dimenstions
         self.geo = geo  # GeoTiff object
@@ -733,6 +734,7 @@ class Reader(object):
         y0 = y - self.b
         x1 = min(self.geo.width - self.margin, x + self.w) + self.b
         y1 = min(self.geo.height - self.margin, y + self.h) + self.b
+        print(f"Reading tile from ({x0}, {y0}) to ({x1}, {y1})")
         # Tile dimensions.
         tile_w = x1 - x0
         tile_h = y1 - y0
@@ -751,9 +753,9 @@ class Reader(object):
         # Computes minimum position in arr that can be filled from geotiff, and fills it.  
         x_min = - min(0, x0)
         y_min = - min(0, y0)
-        arr[y_min:y_min + window_h, x_min:x_min + window_w] = w_arr
+        arr[:, y_min:y_min + window_h, x_min:x_min + window_w] = w_arr
         # Creates the tile.
-        tile = Tile(self.w, self.h, self.b, self.geo.bands, x, y, arr)        
+        tile = Tile(window_w - 2 * self.margin, window_h - 2 * self.margin, self.b, self.geo.bands, x, y, arr)        
         # Update iterator states
         self.tile_corner[0] += self.w
         # Update corner if out of bounds
