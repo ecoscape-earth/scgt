@@ -204,39 +204,50 @@ class GeoTiff(object):
         open_file.write(data)
 
 
-    def get_reader(self, b=0, w=None, h=None):
+    def get_reader(self, b=0, p=0, w=None, h=None, pad_value=0):
         """
         Returns a reader that can iterate over tiles of size w, h , and border b.
         The border overlaps, so if you ask for tiles that are (e.g.) 100 x 100 with border 50,
         and the geotiff is 1000 x 1000,
         :param b: Border (in pixels) around each tile.
+        :param p: Padding (in pixels) around the geotiff.
         :param w: width of each tile.
         :param h: height of each tile.
+        :param pad_value: padding value to be used around each tile. 
         :return: an iterator over tiles. Note that if the geotiff is not of size multiple of w, h,
             some tiles may be smaller than others.
         """
         #Returns a reader with the specified, w, h, b.
-        return Reader(self, b, w, h)
+        return Reader(self, b=b, p=p, w=w, h=h, pad_value=pad_value)
 
-    def set_tile(self, tile, geotiff_includes_border=False):
+
+    def set_tile(self, tile, offset=0, verbose=False):
         """
         Sets a tile in the geotiff.  The tile knows where it belongs, 
-        via its x, y, w, h, and b attributes.
+        via its x, y, w, h, b, and p attributes. 
+        We recall that the x, y coordinates are the ones of the core of the tile 
+        in the source geotiff.  If an offset is needed as the output file has been cropped, 
+        the offset should be included. 
         
         :param tile: the tile to be set.
-        :param geotiff_includes_borer: whether the destination geotiff includes the border or not.
-            If the destination geotiff does not include a border, then the tile border is not 
-            written to the geotiff, and the writing is offset accordingly. 
+        :param offset: offset for the tile. 
+        
+        If the offset is None, then the setting proceeds as follows.  
+        The x, y coordinates of the tile are of the interior of the tile in the source file.
+        We assume that in the destination file, a portion tile.b - tile.p has been shaved out from each side, 
+        top and bottom, and so the x, y in the tile end up in x - offset, y - offset, where
+        offset = tile.b - tile.p.
+        The offset can also be specified explicitly, in which case it is used.  
             
         Note that the function only copies the tile core, not the border.
         """
         x, y, w, h, b = tile.x, tile.y, tile.w, tile.h, tile.b
         # print("Asking to write a tile of shape:", w, h, "at position:", x, y, "with border:", b, "data shape:", tile.m.shape)
-        # If the geotiff does not include the border, then the position in which to 
-        # write the tile should be shifted accordingly.
-        if not geotiff_includes_border:
-            x -= b
-            y -= b
+        # We align the tile core to be written to the output file. 
+        x -= offset
+        y -= offset
+        if verbose:
+            print(f"Writing tile at position ({x}, {y}) with shape ({w}, {h})")
         # Converts the type to the appropriate type for the output.
         if isinstance(tile.m, np.ndarray):
             T = tile.m.astype(self.dataset.dtypes[0])
@@ -498,7 +509,7 @@ class GeoTiff(object):
         cropped_window = from_bounds(*bounds, transform=self.dataset.transform).intersection(src_window).round_lengths().round_offsets(pixel_precision=0)
 
         # update metadata for new file based on the main window of interest
-        profile = self.dataset.profile
+        profile = dict(self.dataset.profile)
         # print("Cropped window:", cropped_window.width, cropped_window.height)
         profile.update({
             'width': cropped_window.width, # Jasmine can we have pixel values here? 
@@ -795,6 +806,13 @@ class Tile(object):
         :return: the string representation.
         """
         return f"Tile at ({self.x}, {self.y}) of size ({self.w}, {self.h}) with border {self.b}"
+    
+    def clone_shape(self):
+        """
+        Clones the shape of the tile.
+        :return: the cloned tile.
+        """
+        return Tile(self.w, self.h, self.b, self.c, self.x, self.y, np.zeros((self.c, self.h, self.w)))
 
     def get_window(self, includes_border=True):
         """
