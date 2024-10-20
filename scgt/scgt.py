@@ -328,7 +328,8 @@ class GeoTiff(object):
         to draw on a geotiff.
         :param coord: coordinates, in geotiff CRS.
         :param value: value to be set.
-        :param tile_scale: how big the tile is.
+        :param tile_scale: size of the tile.
+            (if the pixel resolution is 300m, and tile_scale is 3, the tile will be 900m x 900m centered around coord)
         :return: Nothing.
         """
         # precondition: coord in geotiff range
@@ -479,15 +480,6 @@ class GeoTiff(object):
         if title:
             plt.title(title)
         plt.show()
-    
-    def get_bounds_within_border(self, border):
-        """
-        Returns the bounds of the geotiff after excluding a border of pixels.
-        Useful for if you need to crop a border of X pixels from the geotiff
-        with crop_to_new_file(), but don't have the exact bounds.
-        :param border: Border to exclude from bounds, in number of pixels.
-        :return: Bounding box (xmin, ymin, xmax, ymax) of coordinates as a tuple. 
-        """
 
     def crop_to_new_file(self, border, data_type=None, filename=None, 
                          in_memory=False):

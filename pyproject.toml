@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "scgt"
 version = "0.0.32"
 authors = [
-        {name="Jasmine Tai", email="jctai@ucsc.edu"},
+        {name="Jasmine Tai", email="cjtai@ucsc.edu"},
         {name="Natalie Valett", email="nvalett@ucsc.edu"},
         {name="Luca de Alfaro", email="luca@dealfaro.com"}]
 description = "UC Santa Cruz Geographical Toolkit"

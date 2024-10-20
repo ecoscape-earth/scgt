@@ -157,7 +157,7 @@ Nothing.  The GeoTiff is scaled in place.
 #### get\_reader
 
 ```python
-def get_reader(b=0, w=None, h=None)
+def get_reader(b=0, p=0, w=None, h=None, pad_value=0)
 ```
 
 Returns a reader that can iterate over tiles of size w, h , and border b.
@@ -168,8 +168,10 @@ and the geotiff is 1000 x 1000,
 **Arguments**:
 
 - `b`: Border (in pixels) around each tile.
+- `p`: Padding (in pixels) around the geotiff.
 - `w`: width of each tile.
 - `h`: height of each tile.
+- `pad_value`: padding value to be used around each tile.
 
 **Returns**:
 
@@ -181,19 +183,26 @@ some tiles may be smaller than others.
 #### set\_tile
 
 ```python
-def set_tile(tile, geotiff_includes_border=False)
+def set_tile(tile, offset=0, verbose=False)
 ```
 
 Sets a tile in the geotiff.  The tile knows where it belongs, 
 
-via its x, y, w, h, and b attributes.
+via its x, y, w, h, b, and p attributes. 
+We recall that the x, y coordinates are the ones of the core of the tile 
+in the source geotiff.  If an offset is needed as the output file has been cropped, 
+the offset should be included.
 
 **Arguments**:
 
 - `tile`: the tile to be set.
-- `geotiff_includes_borer`: whether the destination geotiff includes the border or not.
-This latter is used because the output geotiff may not include a border,
-    so the operation needs to be offset. 
+- `offset`: offset for the tile. 
+If the offset is None, then the setting proceeds as follows.  
+The x, y coordinates of the tile are of the interior of the tile in the source file.
+We assume that in the destination file, a portion tile.b - tile.p has been shaved out from each side, 
+top and bottom, and so the x, y in the tile end up in x - offset, y - offset, where
+offset = tile.b - tile.p.
+The offset can also be specified explicitly, in which case it is used.  
 
 Note that the function only copies the tile core, not the border.
 
@@ -264,13 +273,15 @@ def set_tile_from_coord(coord, value, tile_scale=4)
 ```
 
 Sets a tile to a (constant) value, given the coordinates. This is useful
+
 to draw on a geotiff.
 
 **Arguments**:
 
 - `coord`: coordinates, in geotiff CRS.
 - `value`: value to be set.
-- `tile_scale`: how big the tile is.
+- `tile_scale`: size of the tile.
+(if the pixel resolution is 300m, and tile_scale is 3, the tile will be 900m x 900m centered around coord)
 
 **Returns**:
 
@@ -402,27 +413,6 @@ Plots tile's numpy array representation at given band.
 - `width`: width of what to plot.
 - `height`: height of the plot.
 - `band`: band to show.
-
-<a id="scgt.GeoTiff.get_bounds_within_border"></a>
-
-#### get\_bounds\_within\_border
-
-```python
-def get_bounds_within_border(border)
-```
-
-Returns the bounds of the geotiff after excluding a border of pixels.
-
-Useful for if you need to crop a border of X pixels from the geotiff
-with crop_to_new_file(), but don't have the exact bounds.
-
-**Arguments**:
-
-- `border`: Border to exclude from bounds, in number of pixels.
-
-**Returns**:
-
-Bounding box (xmin, ymin, xmax, ymax) of coordinates as a tuple.
 
 <a id="scgt.GeoTiff.crop_to_new_file"></a>
 
@@ -588,7 +578,7 @@ A reader iterates through the tiles of a geotiff.
 #### \_\_init\_\_
 
 ```python
-def __init__(geo, b=0, w=None, h=None)
+def __init__(geo, b=0, p=0, w=None, h=None, pad_value=0)
 ```
 
 Initializes a reader.
@@ -597,8 +587,14 @@ Initializes a reader.
 
 - `geo`: geotiff to read.
 - `b`: border of tiles.
+- `p`: padding of tiles.
 - `w`: width of tiles.
 - `h`: height of tiles.
+- `pad_value`: value to pad the tiles with.
+If the padding is 0, if the region has size m x n, then only the internal portion of size 
+(m - 2b) x (n - 2b) will be part of a tile "core", and so processed. 
+If the padding is equal to the border, then the entire region of size m x n will be part 
+of the tile core.
 
 <a id="scgt.Reader.__iter__"></a>
 
@@ -672,6 +668,20 @@ String representation of the tile.
 **Returns**:
 
 the string representation.
+
+<a id="scgt.Tile.clone_shape"></a>
+
+#### clone\_shape
+
+```python
+def clone_shape()
+```
+
+Clones the shape of the tile.
+
+**Returns**:
+
+the cloned tile.
 
 <a id="scgt.Tile.get_window"></a>
 
