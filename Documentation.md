@@ -186,25 +186,18 @@ some tiles may be smaller than others.
 def set_tile(tile, offset=0, verbose=False)
 ```
 
-Sets a tile in the geotiff.  The tile knows where it belongs, 
-
-via its x, y, w, h, b, and p attributes. 
-We recall that the x, y coordinates are the ones of the core of the tile 
-in the source geotiff.  If an offset is needed as the output file has been cropped, 
-the offset should be included.
+Sets a tile in the geotiff.  
 
 **Arguments**:
 
 - `tile`: the tile to be set.
 - `offset`: offset for the tile. 
-If the offset is None, then the setting proceeds as follows.  
-The x, y coordinates of the tile are of the interior of the tile in the source file.
-We assume that in the destination file, a portion tile.b - tile.p has been shaved out from each side, 
-top and bottom, and so the x, y in the tile end up in x - offset, y - offset, where
-offset = tile.b - tile.p.
-The offset can also be specified explicitly, in which case it is used.  
-
-Note that the function only copies the tile core, not the border.
+Each tile has (x, y) coordinates, which define the position of its top left corner in the 
+source geotiff. set_tile will place the tile in the destination geotiff, such that the 
+top left corner ends up at (x - offset, y - offset). 
+Typically, if a tile is obtained via a reader that has border b and padding p, the offset needs
+to be set to b - p.            
+Note that the function only sets the tile core, not the border.
 
 <a id="scgt.GeoTiff.get_pixel_from_coord"></a>
 
