@@ -419,7 +419,8 @@ Create a new geotiff by cropping the current one and writing to a new file.
 
 **Arguments**:
 
-- `border`: number of pixels to crop from each side of the geotiff.
+- `border`: number of pixels to crop from each side of the geotiff.  If you use the 
+Reader with border b and padding p, you should set border to b - p.
 - `filename`: path where to write result.
 - `in_memory`: whether to create the file in memory only. filename is ignored if True.
 
@@ -584,10 +585,13 @@ Initializes a reader.
 - `w`: width of tiles.
 - `h`: height of tiles.
 - `pad_value`: value to pad the tiles with.
-If the padding is 0, if the region has size m x n, then only the internal portion of size 
-(m - 2b) x (n - 2b) will be part of a tile "core", and so processed. 
-If the padding is equal to the border, then the entire region of size m x n will be part 
-of the tile core.
+Border and padding interact as follows: in a geotiff of size m x n, the external strip of
+size b - p is not part of the interior of any tile.  Thus, in particular: 
+If the padding is equal to the border, the entire geotiff is part of the core of some tile; 
+if the padding is 0, then only the internal portion of size m - 2b x n - 2b will be part of a tile core.
+This is important, because functions such as set_tile set only the tile core. 
+In particular, if the tiles are then written using set_tile, one should set offset = b - p, 
+and the output that will be created will have size (m - 2 offset) x (n - 2 offset).
 
 <a id="scgt.Reader.__iter__"></a>
 
@@ -644,9 +648,11 @@ Creates a tile.
 - `h`: Height of inner region only.
 - `b`: Border width.
 - `c`: Channels.
-- `x`: x location in raster of core region (excluding border).
-- `y`: y location in raster of core region (excluding border).
+- `x`: x location in original raster of core region (excluding border).
+- `y`: y location in original raster of core region (excluding border).
 - `m`: array.
+A tile remembers (via x, y) its position in the original raster, so that it can be written back
+to the original raster or to a generated output via the set_tile method.
 
 <a id="scgt.Tile.__str__"></a>
 
