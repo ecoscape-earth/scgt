@@ -5,10 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "scgt"
 version = "0.0.32"
-authors = [
-        {name="Jasmine Tai", email="cjtai@ucsc.edu"},
-        {name="Natalie Valett", email="nvalett@ucsc.edu"},
-        {name="Luca de Alfaro", email="luca@dealfaro.com"}]
+authors = []
 description = "UC Santa Cruz Geographical Toolkit"
 readme = "README.md"
 requires-python = ">=3.7"
@@ -29,9 +26,3 @@ dependencies = {file = ["requirements.txt"]}
 
 [tool.setuptools]
 packages = ["scgt"]
-
-[project.urls]
-"Homepage" = "https://github.com/ecoscape-earth/scgt"
-"Bug Tracker" = "https://github.com/ecoscape-earth/scgt/issues"
-
-
